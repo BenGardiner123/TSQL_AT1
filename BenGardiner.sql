@@ -105,3 +105,43 @@ EXEC ADD_CUSTOMER @pcustid = 3, @pcustname = 'testdude5';
 select * from customer;
 
 GO
+
+IF OBJECT_ID('DELETE_ALL_CUSTOMER') IS NOT NULL
+DROP PROCEDURE DELETE_ALL_CUSTOMER;
+
+GO
+
+CREATE PROCEDURE DELETE_ALL_CUSTOMER AS
+
+BEGIN
+    
+    BEGIN TRY
+            DELETE FROM Customer
+            PRINT(CONCAT('NUM OF ROWS DELETED: ', @@ROWCOUNT));
+    END TRY
+
+    BEGIN CATCH
+        BEGIN
+            DECLARE @ERRORMESSAGE NVARCHAR(MAX) = ERROR_MESSAGE();
+            THROW 50000, @ERRORMESSAGE, 1
+        END;
+        
+    END CATCH;
+
+END;
+
+GO
+
+EXEC DELETE_ALL_CUSTOMER;
+
+GO
+
+select * from customer;
+
+GO
+-- addding some data back in to test further queries
+EXEC ADD_CUSTOMER @pcustid = 1, @pcustname = 'testdude2';
+EXEC ADD_CUSTOMER @pcustid = 2, @pcustname = 'testdude3';
+EXEC ADD_CUSTOMER @pcustid = 3, @pcustname = 'testdude5';
+
+GO

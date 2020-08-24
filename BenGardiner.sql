@@ -145,3 +145,58 @@ EXEC ADD_CUSTOMER @pcustid = 2, @pcustname = 'testdude3';
 EXEC ADD_CUSTOMER @pcustid = 3, @pcustname = 'testdude5';
 
 GO
+
+-- BEGIN "ADD PRODUCT" STORED PROCEDURE
+
+IF OBJECT_ID('ADD_PRODUCT') IS NOT NULL
+DROP PROCEDURE ADD_PRODUCT;
+GO
+
+CREATE PROCEDURE ADD_PRODUCT @pprodid INT, @pprodname NVARCHAR(100), @pprice MONEY AS
+
+BEGIN
+    BEGIN TRY
+
+        IF @pprodid < 1000 OR @pprodid > 2500
+            THROW 50040, 'Product ID out of range', 1
+        ELSE if @pprice < 0 OR @pprice > 999.99
+             THROW 50050, 'Product price out of range', 1
+        INSERT INTO PRODUCT ( PRODID, PRODNAME, SELLING_PRICE, SALES_YTD) 
+        VALUES (@pprodid, @pprodname, @pprice, 0);
+
+    END TRY
+    BEGIN CATCH
+        if ERROR_NUMBER() = 2627
+            THROW 50030, 'Duplicate Product ID', 1
+        ELSE IF ERROR_NUMBER() = 50040
+            THROW
+        ELSE IF ERROR_NUMBER() = 50050
+            THROW
+        ELSE
+            BEGIN
+                DECLARE @ERRORMESSAGE NVARCHAR(MAX) = ERROR_MESSAGE();
+                THROW 50000, @ERRORMESSAGE, 1
+            END; 
+    END CATCH;
+
+END;
+
+GO
+
+-- test id range
+-- EXEC ADD_PRODUCT @pprodid = 9, @pprodname = 'Shoes', @pprice = 50.00; 
+-- test price range
+-- EXEC ADD_PRODUCT @pprodid = 1001, @pprodname = 'Shoes', @pprice = 10000.00; 
+-- test duplicate key
+/* EXEC ADD_PRODUCT @pprodid = 1001, @pprodname = 'Shoes', @pprice = 100.00; 
+EXEC ADD_PRODUCT @pprodid = 1001, @pprodname = 'Toxic Waste', @pprice = 50.00; */
+
+EXEC ADD_PRODUCT @pprodid = 1001, @pprodname = 'Shoes', @pprice = 50.00; 
+EXEC ADD_PRODUCT @pprodid = 1009, @pprodname = 'Arsenal Top', @pprice = 10.00; 
+EXEC ADD_PRODUCT @pprodid = 1074, @pprodname = 'Golf Buggy', @pprice = 890.00; 
+
+
+select * from customer;
+select * from product;
+
+-- begin delet all products work herer --- - - - - - - -

@@ -199,4 +199,4 @@ EXEC ADD_PRODUCT @pprodid = 1074, @pprodname = 'Golf Buggy', @pprice = 890.00;
 select * from customer;
 select * from product;
 
--- begin delet all products work herer --- - - - - - - -
+-- begin delete all products work herer --- - - - - - - -

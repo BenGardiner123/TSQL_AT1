@@ -195,8 +195,63 @@ EXEC ADD_PRODUCT @pprodid = 1001, @pprodname = 'Shoes', @pprice = 50.00;
 EXEC ADD_PRODUCT @pprodid = 1009, @pprodname = 'Arsenal Top', @pprice = 10.00; 
 EXEC ADD_PRODUCT @pprodid = 1074, @pprodname = 'Golf Buggy', @pprice = 890.00; 
 
+GO
 
 select * from customer;
 select * from product;
 
+GO
 -- begin delete all products work herer --- - - - - - - -
+IF OBJECT_ID('DELETE_ALL_PRODUCTS') IS NOT NULL
+DROP PROCEDURE DELETE_ALL_PRODUCTS;
+GO
+
+CREATE PROCEDURE DELETE_ALL_PRODUCTS AS
+
+BEGIN
+    
+    BEGIN TRY
+            DELETE FROM PRODUCT
+            PRINT(CONCAT('NUM OF ROWS DELETED: ', @@ROWCOUNT));
+    END TRY
+
+    BEGIN CATCH
+        BEGIN
+            DECLARE @ERRORMESSAGE NVARCHAR(MAX) = ERROR_MESSAGE();
+            THROW 50000, @ERRORMESSAGE, 1
+        END;
+        
+    END CATCH;
+
+END;
+
+GO
+
+EXEC DELETE_ALL_PRODUCTS;
+
+GO
+
+select * from PRODUCT;
+
+GO
+
+EXEC ADD_PRODUCT @pprodid = 1001, @pprodname = 'Shoes', @pprice = 50.00; 
+EXEC ADD_PRODUCT @pprodid = 1009, @pprodname = 'Arsenal Top', @pprice = 10.00; 
+EXEC ADD_PRODUCT @pprodid = 1074, @pprodname = 'Golf Buggy', @pprice = 890.00;  
+
+select * from PRODUCT;
+
+GO
+
+
+
+-- begin get customer string work here --- - - - - - - -
+
+IF OBJECT_ID('GET_CUSTOMER_STRING') IS NOT NULL
+DROP PROCEDURE GET_CUSTOMER_STRING;
+GO
+
+CREATE PROCEDURE GET_CUSTOMER_STRING @pcustid INT, @pReturnString NVARCHAR(100) OUTPUT AS
+
+BEGIN
+    SELECT @pReturnString = CUSTNAME, SALES_YTD, [STATUS] FROM CUSTOMER WHERE CUSTID = @pcustid; 

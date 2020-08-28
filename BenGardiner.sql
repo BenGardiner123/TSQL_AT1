@@ -280,4 +280,57 @@ print @externalParam
 END
 
 
+-- begin UPD_CUST_SALESYTD work here - - -- - - -
+-- Update one customer's sales_ytd value in the customer table
 
+
+IF OBJECT_ID('UPD_CUST_SALESYTD') IS NOT NULL
+DROP PROCEDURE UPD_CUST_SALESYTD;
+GO
+
+CREATE PROCEDURE UPD_CUST_SALESYTD @pcustid INT, @pamt INT AS
+
+BEGIN
+    BEGIN TRY
+
+        DECLARE @cName NVARCHAR(100), @ytd money, @status NVARCHAR(7);
+        SELECT @cName = Custname, @ytd = SALES_YTD , @status  = [status] from CUSTOMER where CUSTID = @pcustid;
+        UPDATE Customer SET SALES_YTD = @ytd;
+        -- need to set the amount somewhere here - - - - - - - - 
+        IF @pamt < -999.99 OR @pamt > 999.99
+            THROW 50080, '$ Amount out of range', 1
+    
+    END TRY
+
+    BEGIN CATCH
+        IF @@ROWCOUNT = 0
+            -- custom error below
+            THROW 50070, 'CustomerID not found', 1 
+        ELSE
+            BEGIN
+                DECLARE @ERRORMESSAGE NVARCHAR(MAX) = ERROR_MESSAGE();
+                THROW 50000, @ERRORMESSAGE, 1
+            END; 
+        
+    END CATCH;
+
+    
+END
+
+GO
+
+BEGIN
+
+
+EXEC UPD_CUST_SALESYTD @pcustid = 1, @ytd = -50;
+
+
+
+
+END
+
+GO
+
+select * from PRODUCT;
+
+END

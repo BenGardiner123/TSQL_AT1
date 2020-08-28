@@ -254,4 +254,30 @@ GO
 CREATE PROCEDURE GET_CUSTOMER_STRING @pcustid INT, @pReturnString NVARCHAR(100) OUTPUT AS
 
 BEGIN
-    SELECT @pReturnString = CUSTNAME, SALES_YTD, [STATUS] FROM CUSTOMER WHERE CUSTID = @pcustid; 
+    BEGIN TRY
+        DECLARE @cName NVARCHAR(100), @ytd money, @status NVARCHAR(7);
+        SELECT @cName = Custname, @ytd = SALES_YTD , @status  = [status] from CUSTOMER where CUSTID = @pcustid;
+    END TRY
+    BEGIN CATCH
+        IF @@ROWCOUNT = 0
+        -- custom error below
+        THROW 50060, 'CustomerID not found', 1 
+    END CATCH
+    set @pReturnString = CONCAT('Custid: ', @pcustid, 'Name: ', @cName, 'Status: ', @status,  'SalesYTD: ',@ytd)
+END;
+
+GO
+
+BEGIN
+
+DECLARE @externalParam NVARCHAR(100)
+
+EXEC GET_CUSTOMER_STRING @pcustid = 3, @pReturnString = @externalParam OUTPUT
+
+
+print @externalParam
+
+END
+
+
+

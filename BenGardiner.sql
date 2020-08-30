@@ -383,3 +383,4 @@ print @externalParam
 END */
 
 -- error handling not working here - it should be givingn me an error but instead prints out the line still
+-- https://www.techonthenet.com/sql_server/procedures.php --- this website is good

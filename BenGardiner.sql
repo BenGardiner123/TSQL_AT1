@@ -288,18 +288,30 @@ IF OBJECT_ID('UPD_CUST_SALESYTD') IS NOT NULL
 DROP PROCEDURE UPD_CUST_SALESYTD;
 GO
 
-CREATE PROCEDURE UPD_CUST_SALESYTD @pcustid INT, @pamt INT AS
+CREATE PROCEDURE UPD_CUST_SALESYTD @pcustid INTEGER, @pamt INTEGER AS
 
 BEGIN
     BEGIN TRY
-
-        DECLARE @cName NVARCHAR(100), @ytd money, @status NVARCHAR(7);
-        SELECT @cName = Custname, @ytd = SALES_YTD , @status  = [status] from CUSTOMER where CUSTID = @pcustid;
-        UPDATE Customer SET SALES_YTD = @ytd;
-        -- need to set the amount somewhere here - - - - - - - - 
+         DECLARE @ytd money;
+         SELECT @ytd = SALES_YTd from CUSTOMER where CUSTID = @pcustid;
+         
         IF @pamt < -999.99 OR @pamt > 999.99
-            THROW 50080, '$ Amount out of range', 1
-    
+            THROW 50080, '$ Amount out of range', 1 
+            -- error not being hit
+
+        IF @pamt < 0
+            BEGIN
+                UPDATE CUSTOMER
+                SET SALES_YTD = @ytd - @pamt
+                WHERE CUSTID = @pcustid
+            END; 
+        ELSE IF @pamt > 0
+            BEGIN 
+                UPDATE Customer 
+                SET SALES_YTD = @ytd + @pamt
+                WHERE CUSTID = @pcustid; 
+            END;
+        
     END TRY
 
     BEGIN CATCH
@@ -315,22 +327,59 @@ BEGIN
     END CATCH;
 
     
+END;
+
+GO
+
+
+BEGIN
+
+EXEC UPD_CUST_SALESYTD @pcustid = 1, @pamt = -5000;
+
 END
+
+
+GO
+
+select * from CUSTOMER;
+
+GO
+-- this needs work above the account is oupting null into the target account
+
+
+
+-- -- begin get pruduct string work here --- - - - - - - -
+
+/* IF OBJECT_ID('GET_PRODUCT_STRING') IS NOT NULL
+DROP PROCEDURE GET_PRODUCT_STRING;
+GO
+
+CREATE PROCEDURE GET_PRODUCT_STRING @pprodid INT, @pReturnString NVARCHAR(1000) OUTPUT AS
+
+BEGIN
+    BEGIN TRY
+        DECLARE @pprodname NVARCHAR(100), @ytd money, @sellprice MONEY;
+        SELECT @pprodname = PRODNAME, @ytd = SALES_YTD, @sellprice = SELLING_PRICE from PRODUCT where PRODID = @pprodid;
+    END TRY
+    BEGIN CATCH
+        IF @@ROWCOUNT = 0
+        -- custom error below
+        THROW 50060, 'CustomerID not found', 1 
+    END CATCH
+    set @pReturnString = CONCAT('Prodid: ', @pprodid, 'Name: ', @pprodname, 'Price: ' , @sellprice ,'SalesYTD: ',@ytd)
+END;
 
 GO
 
 BEGIN
 
+DECLARE @externalParam NVARCHAR(100)
 
-EXEC UPD_CUST_SALESYTD @pcustid = 1, @ytd = -50;
+EXEC GET_PRODUCT_STRING @pprodid = 1, @pReturnString = @externalParam OUTPUT
 
 
+print @externalParam
 
+END */
 
-END
-
-GO
-
-select * from PRODUCT;
-
-END
+-- error handling not working here - it should be givingn me an error but instead prints out the line still

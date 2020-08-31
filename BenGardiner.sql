@@ -415,6 +415,92 @@ BEGIN
     EXEC GET_PROD_STRING @pprodid = 2, @pReturnString = @externalParam OUTPUT
     print @externalParam
 END 
-
+GO
 
 -- https://www.techonthenet.com/sql_server/procedures.php --- this website is good
+
+-- 
+
+-- begin UPD_PROD_SALESYTD work here - - -- - - -
+-- Update one customer's sales_ytd value in the customer table
+
+
+IF OBJECT_ID('UPD_PROD_SALESYTD ') IS NOT NULL
+DROP PROCEDURE UPD_PROD_SALESYTD;
+GO
+
+CREATE PROCEDURE UPD_PROD_SALESYTD  @pprodid INTEGER, @pamt INTEGER AS
+
+BEGIN
+    BEGIN TRY
+
+        IF @pamt < -999.99 OR @pamt > 999.99
+            THROW 50110, '$ Amount out of range', 1
+
+        update PRODUCT 
+        set sales_ytd = sales_ytd + @pamt
+        where PRODID = @pprodid;
+        
+        IF @@ROWCOUNT = 0
+            THROW 50100, 'ProductID not found', 1 
+        
+    END TRY
+
+    BEGIN CATCH
+       
+        IF ERROR_NUMBER() IN (50100, 50110)
+            THROW
+        ELSE
+            BEGIN
+                DECLARE @ERRORMESSAGE NVARCHAR(MAX) = ERROR_MESSAGE();
+                THROW 50000, @ERRORMESSAGE, 1
+            END; 
+        
+    END CATCH;
+
+    
+END;
+
+GO
+DELETE FROM PRODUCT;
+INSERT INTO PRODUCT(PRODID, PRODNAME, SELLING_PRICE, sales_ytd)
+VALUES (2, 'Hammer', 500, 0),
+(3, 'Shovel', 20, 0)
+
+GO
+
+-- test with negative num
+BEGIN
+
+EXEC UPD_PROD_SALESYTD  @pprodid = 2, @pamt = -344;
+
+END
+GO
+
+-- test with positive num
+BEGIN
+
+EXEC UPD_PROD_SALESYTD  @pprodid = 3, @pamt = 344;
+
+END
+GO
+
+-- test with out of range
+BEGIN
+
+EXEC UPD_PROD_SALESYTD  @pprodid = 2, @pamt = 9000;
+
+END
+GO
+
+-- test with custID not found
+BEGIN
+
+EXEC UPD_PROD_SALESYTD  @pprodid = 5, @pamt = 344;
+
+END
+GO
+
+select * from PRODUCT;
+
+GO

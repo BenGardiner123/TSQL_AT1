@@ -292,32 +292,23 @@ CREATE PROCEDURE UPD_CUST_SALESYTD @pcustid INTEGER, @pamt INTEGER AS
 
 BEGIN
     BEGIN TRY
-         DECLARE @ytd money;
-         SELECT @ytd = SALES_YTd from CUSTOMER where CUSTID = @pcustid;
-         
-        IF @pamt < -999.99 OR @pamt > 999.99
-            THROW 50080, '$ Amount out of range', 1 
-            -- error not being hit
 
-        IF @pamt < 0
-            BEGIN
-                UPDATE CUSTOMER
-                SET SALES_YTD = @ytd - @pamt
-                WHERE CUSTID = @pcustid
-            END; 
-        ELSE IF @pamt > 0
-            BEGIN 
-                UPDATE Customer 
-                SET SALES_YTD = @ytd + @pamt
-                WHERE CUSTID = @pcustid; 
-            END;
+        IF @pamt < -999.99 OR @pamt > 999.99
+            THROW 50080, '$ Amount out of range', 1
+
+        update CUSTOMER 
+        set sales_ytd = sales_ytd + @pamt
+        where CUSTID = @pcustid;
+        
+        IF @@ROWCOUNT = 0
+            THROW 50070, 'CustomerID not found', 1 
         
     END TRY
 
     BEGIN CATCH
-        IF @@ROWCOUNT = 0
-            -- custom error below
-            THROW 50070, 'CustomerID not found', 1 
+       
+        IF ERROR_NUMBER() IN (50080, 50070)
+            THROW
         ELSE
             BEGIN
                 DECLARE @ERRORMESSAGE NVARCHAR(MAX) = ERROR_MESSAGE();
@@ -331,43 +322,81 @@ END;
 
 GO
 
-
+-- test with negative num
 BEGIN
 
-EXEC UPD_CUST_SALESYTD @pcustid = 1, @pamt = -5000;
+EXEC UPD_CUST_SALESYTD @pcustid = 1, @pamt = -344;
 
 END
 
+-- test with positive num
+BEGIN
+
+EXEC UPD_CUST_SALESYTD @pcustid = 2, @pamt = 344;
+
+END
+
+-- test with out of range
+BEGIN
+
+EXEC UPD_CUST_SALESYTD @pcustid = 2, @pamt = 9000;
+
+END
+
+-- test with custID not found
+BEGIN
+
+EXEC UPD_CUST_SALESYTD @pcustid = 5, @pamt = 344;
+
+END
 
 GO
 
 select * from CUSTOMER;
 
 GO
--- this needs work above the account is oupting null into the target account
 
 
 
 -- -- begin get pruduct string work here --- - - - - - - -
 
-/* IF OBJECT_ID('GET_PRODUCT_STRING') IS NOT NULL
-DROP PROCEDURE GET_PRODUCT_STRING;
+IF OBJECT_ID('GET_PROD_STRING') IS NOT NULL
+DROP PROCEDURE GET_PROD_STRING;
 GO
 
-CREATE PROCEDURE GET_PRODUCT_STRING @pprodid INT, @pReturnString NVARCHAR(1000) OUTPUT AS
+CREATE PROCEDURE GET_PROD_STRING @pprodid INT, @pReturnString NVARCHAR(1000) OUTPUT AS
 
 BEGIN
     BEGIN TRY
+
         DECLARE @pprodname NVARCHAR(100), @ytd money, @sellprice MONEY;
-        SELECT @pprodname = PRODNAME, @ytd = SALES_YTD, @sellprice = SELLING_PRICE from PRODUCT where PRODID = @pprodid;
-    END TRY
-    BEGIN CATCH
+
+        SELECT @pprodname = PRODNAME, @ytd = SALES_YTD, @sellprice = SELLING_PRICE 
+        from PRODUCT 
+        where PRODID = @pprodid;
+
         IF @@ROWCOUNT = 0
-        -- custom error below
-        THROW 50060, 'CustomerID not found', 1 
+       
+        THROW 50090, 'Product ID not found', 1 
+
+        set @pReturnString = CONCAT('Prodid: ', @pprodid, 'Name: ', @pprodname, 'Price: ' , @sellprice ,'SalesYTD: ',@ytd);
+
+    END TRY
+
+    BEGIN CATCH
+
+    IF ERROR_NUMBER() IN (50060)
+        THROW
+    ELSE
+    
+        BEGIN
+                DECLARE @ERRORMESSAGE NVARCHAR(MAX) = ERROR_MESSAGE();
+                THROW 50000, @ERRORMESSAGE, 1
+        END;
+        
     END CATCH
-    set @pReturnString = CONCAT('Prodid: ', @pprodid, 'Name: ', @pprodname, 'Price: ' , @sellprice ,'SalesYTD: ',@ytd)
-END;
+    
+END
 
 GO
 
@@ -375,12 +404,12 @@ BEGIN
 
 DECLARE @externalParam NVARCHAR(100)
 
-EXEC GET_PRODUCT_STRING @pprodid = 1, @pReturnString = @externalParam OUTPUT
+EXEC GET_PROD_STRING @pprodid = 1001, @pReturnString = @externalParam OUTPUT
 
 
 print @externalParam
 
-END */
+END 
 
 -- error handling not working here - it should be givingn me an error but instead prints out the line still
 -- https://www.techonthenet.com/sql_server/procedures.php --- this website is good

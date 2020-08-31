@@ -607,21 +607,21 @@ CREATE PROCEDURE ADD_SIMPLE_SALE  @pcustid INTEGER, @pprodid INTEGER, @pqty INTE
 
 BEGIN
     BEGIN TRY
-        DECLARE @Cytd money, @Pytd money, @status NVARCHAR, @multiVal INTEGER;
-        SELECT @Cytd = SALES_YTD, @pstatus = [status] from CUSTOMER where CUSTID = @pcustid; 
-        SELECT @Pytd = SALES_YTD, @pprice = SELLING_PRICE from PRODUCT where PRODID = @pprodid; 
+        DECLARE @TOTAL INT, @status NVARCHAR, @pstatus NVARCHAR(100), @pprice money;
 
+        SELECT  @pstatus = [status] from CUSTOMER where CUSTID = @pcustid; 
+        SELECT @pprice = SELLING_PRICE from PRODUCT where PRODID = @pprodid; 
+
+        
         IF @pstatus != 'ok'
             THROW 50150, 'Customer Status is not OK', 1
         IF @pqty < 1 OR @pqty > 999
             THROW 50140, 'Sale Quantity outside valid range', 1
 
-        update CUSTOMER          
-        set sales_ytd = @pqty * @pprice
-        where custid = @pcustid;
-        
-        
-        
+        SET @TOTAL = @pqty * @pprice
+
+        EXEC UPD_CUST_SALESYTD @pcustid = @pcustid, @pamt = @TOTAL;
+        EXEC UPD_PROD_SALESYTD @pprodid = @pprodid, @pamt = @TOTAL;
         
     END TRY
 
@@ -639,3 +639,43 @@ BEGIN
 
     
 END;
+
+GO
+
+DELETE FROM CUSTOMER;
+INSERT INTO customer(custid, Custname, sales_ytd, [status])
+VALUES 
+-- customer staus ok below here for test. Error Tested working as "suspend"
+(1, 'BallyWho', 500, 'ok'),
+(3, 'Loady', 20, 'ok');
+
+GO
+
+DELETE FROM PRODUCT;
+INSERT INTO PRODUCT(PRODID, PRODNAME, SELLING_PRICE, sales_ytd)
+VALUES (2, 'Hammer', 50, 0),
+(3, 'Shovel', 20, 0)
+
+GO
+-- TEST 1
+BEGIN
+EXEC ADD_SIMPLE_SALE  @pcustid = 1 , @pprodid = 2, @pqty = 3  
+END
+
+GO
+-- TEST 2 
+BEGIN
+EXEC ADD_SIMPLE_SALE  @pcustid = 3, @pprodid = 3, @pqty = 3;
+END
+
+-- TEST 2 - id will fail
+BEGIN
+EXEC ADD_SIMPLE_SALE  @pcustid = 5, @pprodid = 3, @pqty = 3;
+END
+
+GO
+SELECT *
+from Customer
+SELECT *
+from PRODUCT
+GO

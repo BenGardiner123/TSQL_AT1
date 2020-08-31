@@ -596,3 +596,46 @@ SELECT *
 from Customer
 
 GO
+
+--  ADD SIMPLE SALE follows here - - - - - - - - - - - -
+
+IF OBJECT_ID('ADD_SIMPLE_SALE') IS NOT NULL
+DROP PROCEDURE ADD_SIMPLE_SALE;
+GO
+
+CREATE PROCEDURE ADD_SIMPLE_SALE  @pcustid INTEGER, @pprodid INTEGER, @pqty INTEGER AS
+
+BEGIN
+    BEGIN TRY
+        DECLARE @Cytd money, @Pytd money, @status NVARCHAR, @multiVal INTEGER;
+        SELECT @Cytd = SALES_YTD, @pstatus = [status] from CUSTOMER where CUSTID = @pcustid; 
+        SELECT @Pytd = SALES_YTD, @pprice = SELLING_PRICE from PRODUCT where PRODID = @pprodid; 
+
+        IF @pstatus != 'ok'
+            THROW 50150, 'Customer Status is not OK', 1
+        IF @pqty < 1 OR @pqty > 999
+            THROW 50140, 'Sale Quantity outside valid range', 1
+
+        update CUSTOMER          
+        set sales_ytd = @pqty * @pprice
+        where custid = @pcustid;
+        
+        
+        
+        
+    END TRY
+
+    BEGIN CATCH
+       
+        IF ERROR_NUMBER() IN (50150, 50140)
+            THROW
+        ELSE
+            BEGIN
+                DECLARE @ERRORMESSAGE NVARCHAR(MAX) = ERROR_MESSAGE();
+                THROW 50000, @ERRORMESSAGE, 1
+            END; 
+        
+    END CATCH;
+
+    
+END;

@@ -379,13 +379,13 @@ BEGIN
        
         THROW 50090, 'Product ID not found', 1 
 
-        set @pReturnString = CONCAT('Prodid: ', @pprodid, 'Name: ', @pprodname, 'Price: ' , @sellprice ,'SalesYTD: ',@ytd);
+        set @pReturnString = CONCAT('Prodid: ', @pprodid, ' ','Name: ', @pprodname, ' ',  'Price: ' , @sellprice ,' ','SalesYTD: ',@ytd);
 
     END TRY
 
     BEGIN CATCH
 
-    IF ERROR_NUMBER() IN (50060)
+    IF ERROR_NUMBER() IN (50090)
         THROW
     ELSE
     
@@ -397,19 +397,24 @@ BEGIN
     END CATCH
     
 END
-
 GO
 
+DELETE FROM PRODUCT;
+INSERT INTO PRODUCT(PRODID, PRODNAME, SELLING_PRICE, sales_ytd)
+VALUES(1,'Hammer', 500, 1000);
+
+GO
 BEGIN
-
-DECLARE @externalParam NVARCHAR(100)
-
-EXEC GET_PROD_STRING @pprodid = 1001, @pReturnString = @externalParam OUTPUT
-
-
-print @externalParam
-
+    DECLARE @externalParam NVARCHAR(100)
+    EXEC GET_PROD_STRING @pprodid = 1, @pReturnString = @externalParam OUTPUT
+    print @externalParam
+END 
+GO
+BEGIN
+    DECLARE @externalParam NVARCHAR(100)
+    EXEC GET_PROD_STRING @pprodid = 2, @pReturnString = @externalParam OUTPUT
+    print @externalParam
 END 
 
--- error handling not working here - it should be givingn me an error but instead prints out the line still
+
 -- https://www.techonthenet.com/sql_server/procedures.php --- this website is good

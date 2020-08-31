@@ -747,3 +747,5 @@ DECLARE @ProdSalesSum INT
 EXEC @ProdSalesSum = SUM_PRODUCT_SALESYTD;
 PRINT @ProdSalesSum
 GO
+
+-- going to read up about cursors - done for the night

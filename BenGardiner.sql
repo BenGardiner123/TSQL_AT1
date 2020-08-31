@@ -607,12 +607,17 @@ CREATE PROCEDURE ADD_SIMPLE_SALE  @pcustid INTEGER, @pprodid INTEGER, @pqty INTE
 
 BEGIN
     BEGIN TRY
-        DECLARE @TOTAL INT, @status NVARCHAR, @pstatus NVARCHAR(100), @pprice money;
-
+        DECLARE @TOTAL INT, @status NVARCHAR, @pstatus NVARCHAR(100), @pprice money, @userID int, @userProdid INT;
+       
         SELECT  @pstatus = [status] from CUSTOMER where CUSTID = @pcustid; 
         SELECT @pprice = SELLING_PRICE from PRODUCT where PRODID = @pprodid; 
+        SELECT @userID = CUSTID from CUSTOMER where CUSTID = @pcustid; 
+        SELECT @userProdid = PRODID from PRODUCT where PRODID = @pprodid;
 
-        
+        IF @userID is NULL
+            THROW 50160, 'Customer ID not found', 1
+        IF @userProdid is NULL
+            THROW 50170, 'Product ID not found', 1
         IF @pstatus != 'ok'
             THROW 50150, 'Customer Status is not OK', 1
         IF @pqty < 1 OR @pqty > 999
@@ -621,13 +626,16 @@ BEGIN
         SET @TOTAL = @pqty * @pprice
 
         EXEC UPD_CUST_SALESYTD @pcustid = @pcustid, @pamt = @TOTAL;
+        
         EXEC UPD_PROD_SALESYTD @pprodid = @pprodid, @pamt = @TOTAL;
+        IF @pprodid is NULL
+            THROW 50170, 'Customer Status is not OK', 1
         
     END TRY
 
     BEGIN CATCH
        
-        IF ERROR_NUMBER() IN (50150, 50140)
+        IF ERROR_NUMBER() IN (50170, 50160, 50150, 50140)
             THROW
         ELSE
             BEGIN
@@ -670,7 +678,7 @@ END
 
 -- TEST 2 - id will fail
 BEGIN
-EXEC ADD_SIMPLE_SALE  @pcustid = 5, @pprodid = 3, @pqty = 3;
+EXEC ADD_SIMPLE_SALE  @pcustid = 3, @pprodid = 7, @pqty = 3;
 END
 
 GO
@@ -679,3 +687,38 @@ from Customer
 SELECT *
 from PRODUCT
 GO
+
+-- SUM_CUSTOMER_SALESYTD work to begin below here .-.-.-.-.-.-.-.-.-.
+
+/* IF OBJECT_ID('SUM_CUSTOMER_SALESYTD') IS NOT NULL
+DROP PROCEDURE SUM_CUSTOMER_SALESYTD;
+GO
+
+CREATE PROCEDURE SUM_CUSTOMER_SALESYTD AS
+
+BEGIN
+    
+    BEGIN TRY
+            DELETE FROM PRODUCT
+            PRINT(CONCAT('NUM OF ROWS DELETED: ', @@ROWCOUNT));
+    END TRY
+
+    BEGIN CATCH
+        BEGIN
+            DECLARE @ERRORMESSAGE NVARCHAR(MAX) = ERROR_MESSAGE();
+            THROW 50000, @ERRORMESSAGE, 1
+        END;
+        
+    END CATCH;
+
+END;
+
+GO
+
+EXEC DELETE_ALL_PRODUCTS;
+
+GO
+
+select * from PRODUCT;
+
+GO */

@@ -504,3 +504,95 @@ GO
 select * from PRODUCT;
 
 GO
+
+-- begin work for UPD_CUSTOMER_STATUS HERE..... - - - - -- - 
+
+IF OBJECT_ID('UPD_CUSTOMER_STATUS ') IS NOT NULL
+DROP PROCEDURE UPD_CUSTOMER_STATUS;
+GO
+
+CREATE PROCEDURE UPD_CUSTOMER_STATUS  @pcustid INTEGER, @pstatus NVARCHAR(100) AS
+
+BEGIN
+    BEGIN TRY
+
+        IF @pstatus != 'ok' AND  @pstatus != 'suspend'
+            THROW 50130, 'Invalid Status Value', 1
+
+        update CUSTOMER          
+        set [status] = @pstatus
+        where custid = @pcustid;
+        
+        
+        IF @@ROWCOUNT = 0
+            THROW 50120, 'CustomerID not found', 1 
+        
+    END TRY
+
+    BEGIN CATCH
+       
+        IF ERROR_NUMBER() IN (50130, 50120)
+            THROW
+        ELSE
+            BEGIN
+                DECLARE @ERRORMESSAGE NVARCHAR(MAX) = ERROR_MESSAGE();
+                THROW 50000, @ERRORMESSAGE, 1
+            END; 
+        
+    END CATCH;
+
+    
+END;
+
+GO
+DELETE FROM CUSTOMER;
+INSERT INTO customer(custid, Custname, sales_ytd, [status])
+VALUES 
+(1, 'BallyWho', 500, 'ok'),
+(3, 'Loady', 20, 'suspend');
+
+GO
+
+SELECT *
+
+from Customer
+
+GO
+-- test suspend
+BEGIN
+
+EXEC UPD_CUSTOMER_STATUS  @pcustid = 1, @pstatus = 'suspend';
+
+END
+GO
+
+-- test ok
+BEGIN
+
+EXEC UPD_CUSTOMER_STATUS  @pcustid = 3, @pstatus = 'ok';
+
+END
+GO
+
+-- test custid does not exist
+BEGIN
+
+EXEC UPD_CUSTOMER_STATUS  @pcustid = 5, @pstatus = 'ok';
+
+END
+GO
+
+-- test incorrect data entry
+BEGIN
+
+EXEC UPD_CUSTOMER_STATUS  @pcustid = 1, @pstatus = 'big trouble';
+
+END
+GO
+
+-- check that the values in status have been reversed
+SELECT *
+
+from Customer
+
+GO

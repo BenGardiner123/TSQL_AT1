@@ -748,4 +748,31 @@ EXEC @ProdSalesSum = SUM_PRODUCT_SALESYTD;
 PRINT @ProdSalesSum
 GO
 
--- going to read up about cursors - done for the night
+--.-.-.-.-.-. GET_ALL_CUSTOMERS WORK TO FOLLOW HERE .-.-.-.-.-.-.-.-.-.-.-.-.
+IF OBJECT_ID('GET_ALL_CUSTOMERS') IS NOT NULL
+DROP PROCEDURE GET_ALL_CUSTOMERS;
+GO
+
+CREATE PROCEDURE GET_ALL_CUSTOMERS @POUTCUR CURSOR VARYING OUTPUT
+AS
+BEGIN
+    SET @POUTCUR = CURSOR FOR
+    SELECT *
+    FROM CUSTOMER;
+ 
+    OPEN @POUTCUR;
+END
+GO
+
+DECLARE @outCust as CURSOR;
+DECLARE @pOutCur AS CURSOR;
+
+EXEC GET_ALL_CUSTOMERS @POUTCUR = @outCust OUTPUT
+
+
+FETCH NEXT FROM @outCust INTO @pOutCur;
+SELECT @pOutCur;
+
+CLOSE @outCust;
+DEALLOCATE @outCust;
+-- need some direction with the cursor/// might need to declare all the outputs into colums and then push tem back intoanpther cursor?

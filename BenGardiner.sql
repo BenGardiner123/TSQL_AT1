@@ -764,15 +764,23 @@ BEGIN
 END
 GO
 
+BEGIN
 DECLARE @outCust as CURSOR;
-DECLARE @pOutCur AS CURSOR;
+DECLARE @Name NVARCHAR(100), @ytd money, @status NVARCHAR(10), @ID INTEGER
+
+
 
 EXEC GET_ALL_CUSTOMERS @POUTCUR = @outCust OUTPUT
 
-
-FETCH NEXT FROM @outCust INTO @pOutCur;
-SELECT @pOutCur;
+-- this line tests whether something can be returned
+FETCH NEXT FROM @outCust INTO @ID, @Name, @ytd, @status;
+-- this 
+WHILE @@FETCH_status = 0
+BEGIN
+    PRINT CONCAT(@ID, @Name, @ytd, @status)
+    FETCH NEXT FROM @outCust INTO @ID, @Name, @ytd, @status;
+END
 
 CLOSE @outCust;
 DEALLOCATE @outCust;
--- need some direction with the cursor/// might need to declare all the outputs into colums and then push tem back intoanpther cursor?
+END

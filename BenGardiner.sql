@@ -887,3 +887,56 @@ VALUES ('loc12', 666, 667),
 
 -- ADD_COMPLEX_SALE -.-.-.-.-.-.-.-.- works to follow here
 
+IF OBJECT_ID('ADD_COMPLEX_SALE') IS NOT NULL
+DROP PROCEDURE ADD_COMPLEX_SALE;
+GO
+
+CREATE PROCEDURE ADD_COMPLEX_SALE  @pcustid INTEGER, @pprodid INTEGER, @pqty INTEGER, @pdate NVARCHAR(8) AS
+
+BEGIN
+    BEGIN TRY
+        DECLARE @TOTAL INT, @status NVARCHAR, @pstatus NVARCHAR(100), @pprice money, @userID int, @userProdid INT;
+       
+        SELECT  @pstatus = [status] from CUSTOMER where CUSTID = @pcustid; 
+        SELECT @pprice = SELLING_PRICE from PRODUCT where PRODID = @pprodid; 
+        SELECT @userID = CUSTID from CUSTOMER where CUSTID = @pcustid; 
+        SELECT @userProdid = PRODID from PRODUCT where PRODID = @pprodid;
+
+        IF @userID is NULL
+            THROW 50260, 'Customer ID not found', 1
+        IF @userProdid is NULL
+            THROW 50270, 'Product ID not found', 1
+        IF @pstatus != 'ok'
+            THROW 50240, 'Customer Status is not OK', 1
+        IF @pqty < 1 OR @pqty > 999
+            THROW 50230, 'Sale Quantity outside valid range', 1
+            -- need to add the date range error here
+
+            -- The saleid value must be obtained from the SALE_SEQ - need to add this below as well - - 
+
+        SET @TOTAL = @pqty * @pprice
+
+        EXEC UPD_CUST_SALESYTD @pcustid = @pcustid, @pamt = @TOTAL;
+        
+        EXEC UPD_PROD_SALESYTD @pprodid = @pprodid, @pamt = @TOTAL;
+        IF @pprodid is NULL
+            THROW 50170, 'Customer Status is not OK', 1
+        
+    END TRY
+
+    BEGIN CATCH
+       
+        IF ERROR_NUMBER() IN (50270, 50260, 50240, 50230)
+            THROW
+        ELSE
+            BEGIN
+                DECLARE @ERRORMESSAGE NVARCHAR(MAX) = ERROR_MESSAGE();
+                THROW 50000, @ERRORMESSAGE, 1
+            END; 
+        
+    END CATCH;
+
+    
+END;
+
+GO

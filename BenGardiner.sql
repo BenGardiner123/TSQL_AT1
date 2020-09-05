@@ -822,3 +822,68 @@ CLOSE @outPROD;
 DEALLOCATE @outPROD;
 END
 
+
+-- ADD_LOCATION .-.-.-.-.-.-.-.-.-.-.-.-.- adds a new row to the lcoation table
+
+IF OBJECT_ID('ADD_LOCATION') IS NOT NULL
+DROP PROCEDURE ADD_LOCATION;
+GO
+
+CREATE PROCEDURE ADD_LOCATION @ploccode NVARCHAR(5), @pminqty INT, @pmaxqty INT AS
+
+BEGIN
+    BEGIN TRY
+        
+        INSERT INTO [LOCATION] (LOCID, MINQTY, MAXQTY) 
+        VALUES (@ploccode, @pminqty, @pmaxqty);
+
+    END TRY
+
+    BEGIN CATCH
+        if ERROR_NUMBER() = 2627
+            THROW 50180, 'Duplicate location ID', 1
+       /*  ELSE IF ERROR_NUMBER() = 50040
+            THROW
+        ELSE IF ERROR_NUMBER() = 50050
+            THROW  */
+        ELSE
+            BEGIN
+                DECLARE @ERRORMESSAGE NVARCHAR(MAX) = ERROR_MESSAGE();
+                THROW 50000, @ERRORMESSAGE, 1
+            END; 
+    END CATCH;
+
+END;
+
+/* GO
+DELETE FROM [LOCATION];
+INSERT INTO [LOCATION] (LOCID, MINQTY, MAXQTY) 
+VALUES ('123456', 123, 555);
+-- Msg 2628, Level 16, State 1, Line 860
+GO
+DELETE FROM [LOCATION];
+INSERT INTO [LOCATION] (LOCID, MINQTY, MAXQTY) 
+VALUES ('loc12', 6666, 66664);
+-- Msg 547, Level 16, State 0, Line 865 */
+/* GO
+DELETE FROM [LOCATION];
+INSERT INTO [LOCATION] (LOCID, MINQTY, MAXQTY) 
+VALUES ('loc12', 666, 66664);
+-- Msg 547, Level 16, State 0, Line 870
+GO */
+/* GO
+DELETE FROM [LOCATION];
+INSERT INTO [LOCATION] (LOCID, MINQTY, MAXQTY) 
+VALUES ('loc12', 666, 566);
+-- Msg 547, Level 16, State 0, Line 876
+GO */
+GO
+DELETE FROM [LOCATION];
+INSERT INTO [LOCATION] (LOCID, MINQTY, MAXQTY) 
+VALUES ('loc12', 666, 667),
+('loc12', 666, 667);
+-- bit confused here with the custom error making
+
+
+-- ADD_COMPLEX_SALE -.-.-.-.-.-.-.-.- works to follow here
+

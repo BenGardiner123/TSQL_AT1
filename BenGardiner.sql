@@ -1020,7 +1020,7 @@ BEGIN
 
         -- this line tests whether something can be returned
         FETCH NEXT FROM @outSALES INTO @outSALEID, @outCUSTID, @outPRODID, @outQTY, @outPRICE, @outSALEDATE;
-        -- this 
+        -- this is the sentinel value for the while loop until there are no more rows to fetch
         WHILE @@FETCH_status = 0
         BEGIN
             PRINT CONCAT('Sale ID: ', @outSALEID, ' Customer ID: ', @outCUSTID, ' Product ID: ', @outPRODID,' Qty: ', @outQTY, ' Price: ', @outPRICE,' Sale Date: ', @outSALEDATE)

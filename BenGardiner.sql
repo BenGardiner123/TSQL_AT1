@@ -655,7 +655,7 @@ INSERT INTO customer(custid, Custname, sales_ytd, [status])
 VALUES 
 -- customer staus ok below here for test. Error Tested working as "suspend"
 (1, 'BallyWho', 500, 'ok'),
-(3, 'Loady', 20, 'ok');
+(3, 'Loady', 20, 'suspend');
 
 GO
 
@@ -894,35 +894,37 @@ IF OBJECT_ID('ADD_COMPLEX_SALE') IS NOT NULL
 DROP PROCEDURE ADD_COMPLEX_SALE;
 GO
 
-CREATE PROCEDURE ADD_COMPLEX_SALE  @pcustid INTEGER, @pprodid INTEGER, @pqty INTEGER, @pdate NVARCHAR(8) AS
+CREATE PROCEDURE ADD_COMPLEX_SALE  @pcustid INTEGER, @pprodid INTEGER, @pqty INTEGER, @pdate NVARCHAR(10) AS
 
 BEGIN
     BEGIN TRY
-        DECLARE @TOTAL INT, @status NVARCHAR, @pstatus NVARCHAR(100), @pprice money, @userID int, @userProdid INT;
+        DECLARE @TOTAL INT, @status NVARCHAR(100), @pstatus NVARCHAR(100), @pprice money, @userID int, @userProdid INT, @convertedDate DATE;
        
         SELECT  @pstatus = [status], @userID = CUSTID from CUSTOMER where CUSTID = @pcustid; 
         SELECT @pprice = SELLING_PRICE, @userProdid = PRODID from PRODUCT where PRODID = @pprodid; 
-        
+        SELECT @convertedDate = CONVERT(nvarchar, @pdate, 112);
 
-        IF @userID is NULL
-            THROW 50260, 'Customer ID not found', 1
-        IF @userProdid is NULL
-            THROW 50270, 'Product ID not found', 1
         IF @pstatus != 'ok'
             THROW 50240, 'Customer Status is not OK', 1
         IF @pqty < 1 OR @pqty > 999
             THROW 50230, 'Sale Quantity outside valid range', 1
-            -- need to add the date range error here
+        
+        IF (SELECT COUNT(*) FROM CUSTOMER WHERE CUSTID = @pcustid) = 0
+            THROW 50260, 'Customer ID not found', 1
+        IF (SELECT COUNT(*) FROM PRODUCT WHERE PRODID = @pprodid) = 0
+            THROW 50270, 'Product ID not found', 1
 
-            -- The saleid value must be obtained from the SALE_SEQ - need to add this below as well - - 
+        DECLARE @seq BIGINT
+        set @seq = next VALUE FOR SALE_SEQ
 
         SET @TOTAL = @pqty * @pprice
 
         EXEC UPD_CUST_SALESYTD @pcustid = @pcustid, @pamt = @TOTAL;
-        
         EXEC UPD_PROD_SALESYTD @pprodid = @pprodid, @pamt = @TOTAL;
-        IF @pprodid is NULL
-            THROW 50170, 'Customer Status is not OK', 1
+
+        INSERT INTO SALE (SALEID, CUSTID, PRODID, QTY, PRICE, SALEDATE)
+        VALUES (@seq, @pcustid, @pprodid, @pqty, @pprice, @convertedDate)
+       
         
     END TRY
 
@@ -933,12 +935,110 @@ BEGIN
         ELSE
             BEGIN
                 DECLARE @ERRORMESSAGE NVARCHAR(MAX) = ERROR_MESSAGE();
-                THROW 50000, @ERRORMESSAGE, 1
+                THROW 
             END; 
-        
+
     END CATCH;
 
     
 END;
 
+/* GO
+-- inserts new row and seems to be working
+ EXEC ADD_COMPLEX_SALE @pcustid = 1, @pprodid = 2, @pqty = 3, @pdate = 20200612;  */ 
+
+/* GO
+-- prod id not found
+ EXEC ADD_COMPLEX_SALE @pcustid = 1, @pprodid = 7, @pqty = 3, @pdate = 20200612;  */
+
+-- GO 
+
+/* -- cust id not found
+ EXEC ADD_COMPLEX_SALE @pcustid = 6, @pprodid = 2, @pqty = 3, @pdate = 20200612;  */
+
+--  GO
+/* -- date not valid test - complete
+ EXEC ADD_COMPLEX_SALE @pcustid = 1, @pprodid = 2, @pqty = 3, @pdate = 20201781;  */
+
+-- sale qty not valid test 
+/* GO 
+EXEC ADD_COMPLEX_SALE @pcustid = 1, @pprodid = 2, @pqty = 1000, @pdate = 20200612; */
+
+/* -- customer status not valid test 
+GO
+EXEC ADD_COMPLEX_SALE @pcustid = 3, @pprodid = 2, @pqty = 1, @pdate = 20200612; */
+
+ -- real life working insert
+GO
+EXEC ADD_COMPLEX_SALE @pcustid = 1, @pprodid = 2, @pqty = 5, @pdate = 20200612; 
+EXEC ADD_COMPLEX_SALE @pcustid = 1, @pprodid = 3, @pqty = 5, @pdate = 20200712;
+EXEC ADD_COMPLEX_SALE @pcustid = 1, @pprodid = 2, @pqty = 5, @pdate = 20200812;
 GO 
+
+SELECT *
+FROM [SALE];
+
+GO
+
+SELECT *
+FROM CUSTOMER;
+
+GO
+
+SELECT *
+FROM PRODUCT;
+
+/* GO
+DELETE from SALE; */
+
+GO
+
+-- GET_ALLSALES --- works begin here ---------------------------------------------------------
+
+IF OBJECT_ID('GET_ALL_SALES') IS NOT NULL
+DROP PROCEDURE GET_ALL_SALES;
+GO
+CREATE PROCEDURE GET_ALL_SALES @POUTCUR CURSOR VARYING OUTPUT
+AS
+
+BEGIN
+    SET @POUTCUR = CURSOR FOR
+    SELECT *
+    FROM SALE;
+ 
+    OPEN @POUTCUR;
+END
+GO
+
+BEGIN
+    BEGIN TRY
+        DECLARE @outSALES as CURSOR;
+        DECLARE @outSALEID BIGINT, @outCUSTID INT, @outPRODID INT, @outQTY INT, @outPRICE MONEY, @outSALEDATE DATE
+
+
+        EXEC GET_ALL_SALES @POUTCUR = @outSALES OUTPUT
+
+        -- this line tests whether something can be returned
+        FETCH NEXT FROM @outSALES INTO @outSALEID, @outCUSTID, @outPRODID, @outQTY, @outPRICE, @outSALEDATE;
+        -- this 
+        WHILE @@FETCH_status = 0
+        BEGIN
+            PRINT CONCAT('Sale ID: ', @outSALEID, ' Customer ID: ', @outCUSTID, ' Product ID: ', @outPRODID,' Qty: ', @outQTY, ' Price: ', @outPRICE,' Sale Date: ', @outSALEDATE)
+            FETCH NEXT FROM @outSALES INTO @outSALEID, @outCUSTID, @outPRODID, @outQTY, @outPRICE, @outSALEDATE;
+        END
+
+        CLOSE @outSALES;
+        DEALLOCATE @outSALES;
+        
+    END TRY
+    BEGIN CATCH
+            BEGIN
+                DECLARE @ERRORMESSAGE NVARCHAR(MAX) = ERROR_MESSAGE();
+                THROW 50000, @ERRORMESSAGE, 1
+            END; 
+
+    END CATCH
+
+END
+
+GO

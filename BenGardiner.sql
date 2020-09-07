@@ -829,60 +829,63 @@ IF OBJECT_ID('ADD_LOCATION') IS NOT NULL
 DROP PROCEDURE ADD_LOCATION;
 GO
 
-CREATE PROCEDURE ADD_LOCATION @ploccode NVARCHAR(5), @pminqty INT, @pmaxqty INT AS
+CREATE PROCEDURE ADD_LOCATION @ploccode NVARCHAR(20), @pminqty INT, @pmaxqty INT AS
 
 BEGIN
     BEGIN TRY
-        
+
         INSERT INTO [LOCATION] (LOCID, MINQTY, MAXQTY) 
         VALUES (@ploccode, @pminqty, @pmaxqty);
 
     END TRY
 
     BEGIN CATCH
-        if ERROR_NUMBER() = 2627
+        IF ERROR_NUMBER() = 2627
             THROW 50180, 'Duplicate location ID', 1
-       /*  ELSE IF ERROR_NUMBER() = 50040
-            THROW
-        ELSE IF ERROR_NUMBER() = 50050
-            THROW  */
-        ELSE
+        IF ERROR_NUMBER() = 2628
+            THROW 50190, 'Location Code length invalid', 1    
+       
+        IF ERROR_NUMBER() = 547
             BEGIN
-                DECLARE @ERRORMESSAGE NVARCHAR(MAX) = ERROR_MESSAGE();
-                THROW 50000, @ERRORMESSAGE, 1
-            END; 
+                IF ERROR_MESSAGE() LIKE '%CHECK_MINQTY_RANGE%'
+                    THROW 50200, 'Minimum Qty out of range', 1
+                IF ERROR_MESSAGE() LIKE '%CHECK_MAXQTY_RANGE%'
+                    THROW 50210, 'Maximum Qty out of range', 1
+                IF ERROR_MESSAGE() LIKE '%CHECK_MAXQTY_GREATER_MIXQTY%'
+                THROW 50220, 'Minimum Qty larger than   
+               Maximum Qty', 1
+
+            END;  
+        
     END CATCH;
 
 END;
 
-/* GO
-DELETE FROM [LOCATION];
-INSERT INTO [LOCATION] (LOCID, MINQTY, MAXQTY) 
-VALUES ('123456', 123, 555);
--- Msg 2628, Level 16, State 1, Line 860
 GO
 DELETE FROM [LOCATION];
 INSERT INTO [LOCATION] (LOCID, MINQTY, MAXQTY) 
-VALUES ('loc12', 6666, 66664);
--- Msg 547, Level 16, State 0, Line 865 */
-/* GO
-DELETE FROM [LOCATION];
-INSERT INTO [LOCATION] (LOCID, MINQTY, MAXQTY) 
-VALUES ('loc12', 666, 66664);
--- Msg 547, Level 16, State 0, Line 870
-GO */
-/* GO
-DELETE FROM [LOCATION];
-INSERT INTO [LOCATION] (LOCID, MINQTY, MAXQTY) 
-VALUES ('loc12', 666, 566);
--- Msg 547, Level 16, State 0, Line 876
-GO */
+VALUES ('loc12', 123, 555);
+
+GO
+/* -- this tests as working the duplicate location ID
+EXEC ADD_LOCATION @ploccode = 'loc12', @pminqty = 664, @pmaxqty = 667; */
+/* -- this tests as working the LOCID_LENGTH working
+EXEC ADD_LOCATION @ploccode = 'loc112', @pminqty = 664, @pmaxqty = 667; */
+/* -- this tests as working the minqty_range working
+EXEC ADD_LOCATION @ploccode = 'loc19', @pminqty = 39999, @pmaxqty = 40000;  */
+/* -- this tests as working the mmaxqty_range working
+EXEC ADD_LOCATION @ploccode = 'loc20', @pminqty = 299, @pmaxqty = 40000;  */
+-- this tests as working the min_max_greaterthan_error working
+/* EXEC ADD_LOCATION @ploccode = 'loc21', @pminqty = 699, @pmaxqty = 211; */
+GO
+
+SELECT *
+From LOCATION
+
 GO
 DELETE FROM [LOCATION];
-INSERT INTO [LOCATION] (LOCID, MINQTY, MAXQTY) 
-VALUES ('loc12', 666, 667),
-('loc12', 666, 667);
--- bit confused here with the custom error making
+
+GO
 
 
 -- ADD_COMPLEX_SALE -.-.-.-.-.-.-.-.- works to follow here
@@ -939,4 +942,4 @@ BEGIN
     
 END;
 
-GO
+GO */

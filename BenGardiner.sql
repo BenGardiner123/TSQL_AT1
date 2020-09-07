@@ -900,10 +900,9 @@ BEGIN
     BEGIN TRY
         DECLARE @TOTAL INT, @status NVARCHAR, @pstatus NVARCHAR(100), @pprice money, @userID int, @userProdid INT;
        
-        SELECT  @pstatus = [status] from CUSTOMER where CUSTID = @pcustid; 
-        SELECT @pprice = SELLING_PRICE from PRODUCT where PRODID = @pprodid; 
-        SELECT @userID = CUSTID from CUSTOMER where CUSTID = @pcustid; 
-        SELECT @userProdid = PRODID from PRODUCT where PRODID = @pprodid;
+        SELECT  @pstatus = [status], @userID = CUSTID from CUSTOMER where CUSTID = @pcustid; 
+        SELECT @pprice = SELLING_PRICE, @userProdid = PRODID from PRODUCT where PRODID = @pprodid; 
+        
 
         IF @userID is NULL
             THROW 50260, 'Customer ID not found', 1
@@ -942,4 +941,4 @@ BEGIN
     
 END;
 
-GO */
+GO 

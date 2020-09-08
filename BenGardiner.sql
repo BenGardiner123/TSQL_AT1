@@ -1127,3 +1127,72 @@ BEGIN
 
 
 END
+
+
+-- -------------------- DELETE_ALL_SALES ---- WORKS BELOW --------------------------------------------
+
+/* IF OBJECT_ID('DELETE_ALL_SALES') IS NOT NULL
+DROP PROCEDURE DELETE_ALL_SALES;
+GO
+
+CREATE PROCEDURE DELETE_ALL_SALES AS
+
+BEGIN
+    BEGIN TRY
+
+           DELETE from SALE
+           UPDATE CUSTOMER
+           SET SALES_YTD = 0;
+           UPDATE PRODUCT
+           SET SALES_YTD = 0;
+
+    END TRY
+
+    BEGIN CATCH
+       
+        IF ERROR_NUMBER() IN (50280)
+            THROW
+        ELSE
+            BEGIN
+                DECLARE @ERRORMESSAGE NVARCHAR(MAX) = ERROR_MESSAGE();
+                THROW 50000, @ERRORMESSAGE, 1
+            END; 
+
+    END CATCH;
+
+
+END */
+
+
+-- -------------------- DELETE_CUSTOMER ---- WORKS BELOW --------------------------------------------
+
+IF OBJECT_ID('DELETE_CUSTOMER') IS NOT NULL
+DROP PROCEDURE DELETE_CUSTOMER;
+GO
+
+CREATE PROCEDURE DELETE_CUSTOMER @pCustid int AS
+
+BEGIN
+    BEGIN TRY
+        DELETE from CUSTOMER
+        WHERE CUSTID = @pCustid
+        IF @@ROWCOUNT = 0
+            THROW 50290, 'Customer ID not found', 1
+        
+
+    END TRY
+
+    BEGIN CATCH
+       
+        IF ERROR_NUMBER() IN (50290)
+            THROW
+        ELSE
+            BEGIN
+                DECLARE @ERRORMESSAGE NVARCHAR(MAX) = ERROR_MESSAGE();
+                THROW 
+            END; 
+
+    END CATCH;
+
+
+END

@@ -973,6 +973,9 @@ GO
 EXEC ADD_COMPLEX_SALE @pcustid = 1, @pprodid = 2, @pqty = 5, @pdate = 20200612; 
 EXEC ADD_COMPLEX_SALE @pcustid = 1, @pprodid = 3, @pqty = 5, @pdate = 20200712;
 EXEC ADD_COMPLEX_SALE @pcustid = 1, @pprodid = 2, @pqty = 5, @pdate = 20200812;
+EXEC ADD_COMPLEX_SALE @pcustid = 1, @pprodid = 2, @pqty = 5, @pdate = 20200801; 
+EXEC ADD_COMPLEX_SALE @pcustid = 1, @pprodid = 3, @pqty = 5, @pdate = 20200802;
+EXEC ADD_COMPLEX_SALE @pcustid = 1, @pprodid = 2, @pqty = 5, @pdate = 20200804;
 GO 
 
 SELECT *
@@ -1042,3 +1045,85 @@ BEGIN
 END
 
 GO
+
+
+-- COUNT_PRODUCT_SALES ------- works below here ------------------------------------------------------
+
+IF OBJECT_ID('COUNT_PRODUCT_SALES') IS NOT NULL
+DROP PROCEDURE COUNT_PRODUCT_SALES;
+GO
+
+CREATE PROCEDURE COUNT_PRODUCT_SALES @pdays INTEGER
+AS
+BEGIN
+    BEGIN TRY
+        DECLARE @DateAdd DATE
+        SET @DateAdd = DATEADD(DD, @pdays, SYSDATETIME());
+
+        RETURN(SELECT COUNT(*) 
+        FROM SALE
+        WHERE SALEDATE >= @DateAdd);
+
+    END TRY
+
+    BEGIN CATCH
+
+        BEGIN
+            DECLARE @ERRORMESSAGE NVARCHAR(MAX) = ERROR_MESSAGE();
+            THROW 50000, @ERRORMESSAGE, 1
+        END; 
+
+    END CATCH
+
+END
+
+GO
+
+
+GO
+
+DECLARE @Count_prod_sales INT
+EXEC @Count_prod_sales = COUNT_PRODUCT_SALES @pdays = -100
+PRINT CONCAT('Total sales in your selected range is ', @Count_prod_sales);
+-- NOT SURE IF THIS IS WORKING EXACTLY CORRECT- NEED CHECK WITH TIM ****
+GO
+
+
+-- -------------------- DELETE_SALE ---- WORKS BELOW --------------------------------------------
+
+IF OBJECT_ID('DELETE_SALE') IS NOT NULL
+DROP PROCEDURE DELETE_SALE;
+GO
+
+CREATE PROCEDURE DELETE_SALE AS
+
+BEGIN
+    BEGIN TRY
+        DECLARE @minsale bigint ,@productID INT, @customerID INT
+        SELECT @minsale  = MIN(SALEID), @productID = PRODID FROM SALE
+        IF @@ROWCOUNT = 0
+        THROW 50280, 'No Sale Rows Found', 1
+        ELSE
+           DELETE from SALE
+           WHERE SALEID = @minsale; 
+
+        -- think need to calulate the amount as equal to qty of the sale * price from sale
+
+      /*   EXEC UPD_CUST_SALESYTD @pcustid = @pcustid, @pamt = @TOTAL;
+        EXEC UPD_PROD_SALESYTD @pprodid = @pprodid, @pamt = @TOTAL;
+ */
+    END TRY
+    BEGIN CATCH
+       
+        IF ERROR_NUMBER() IN (50280)
+            THROW
+        ELSE
+            BEGIN
+                DECLARE @ERRORMESSAGE NVARCHAR(MAX) = ERROR_MESSAGE();
+                THROW 50000, @ERRORMESSAGE, 1
+            END; 
+
+    END CATCH;
+
+
+END

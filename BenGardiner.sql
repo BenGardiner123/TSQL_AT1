@@ -1209,7 +1209,7 @@ IF OBJECT_ID('DELETE_CUSTOMER') IS NOT NULL
 DROP PROCEDURE DELETE_CUSTOMER;
 GO
 
-CREATE PROCEDURE DELETE_CUSTOMER @pCustid int AS
+CREATE PROCEDURE DELETE_CUSTOMER @pCustid INT AS
 
 BEGIN
     BEGIN TRY
@@ -1225,6 +1225,8 @@ BEGIN
        
         IF ERROR_NUMBER() IN (50290)
             THROW
+        IF ERROR_NUMBER() = 547
+            THROW 50300, 'Customer cannot be deleted as sales exist', 1
         ELSE
             BEGIN
                 DECLARE @ERRORMESSAGE NVARCHAR(MAX) = ERROR_MESSAGE();
@@ -1235,3 +1237,40 @@ BEGIN
 
 
 END
+
+GO
+-- SETUP TESTING HERE TO CHECK THE CHILD COMPLEX SALES ERROR - TESTED WORKING.
+
+EXEC UPD_CUSTOMER_STATUS  @pcustid = 3, @pstatus = 'ok';
+
+GO
+
+EXEC ADD_CUSTOMER @pcustid = 10, @pcustname = 'Augusto C. Sandino';
+
+GO
+
+EXEC ADD_COMPLEX_SALE @pcustid = 1, @pprodid = 2, @pqty = 5, @pdate = 20200612; 
+EXEC ADD_COMPLEX_SALE @pcustid = 1, @pprodid = 3, @pqty = 5, @pdate = 20200712;
+EXEC ADD_COMPLEX_SALE @pcustid = 1, @pprodid = 2, @pqty = 5, @pdate = 20200812;
+EXEC ADD_COMPLEX_SALE @pcustid = 3, @pprodid = 2, @pqty = 5, @pdate = 20200908; 
+EXEC ADD_COMPLEX_SALE @pcustid = 1, @pprodid = 3, @pqty = 5, @pdate = 20200909;
+EXEC ADD_COMPLEX_SALE @pcustid = 3, @pprodid = 2, @pqty = 5, @pdate = 20200910;
+
+GO 
+-- THIS TESTS THE ERROR
+/* EXEC DELETE_CUSTOMER @pcustid = 3; */
+
+GO
+
+EXEC DELETE_CUSTOMER @pcustid = 10;
+
+GO
+-- need to visually check this with a select *
+
+--------------------------DELETE_PRODUCT works to follow here ---------------------------------------------------------
+
+IF OBJECT_ID('DELETE_PRODUCT') IS NOT NULL
+DROP PROCEDURE DELETE_PRODUCT;
+GO
+
+CREATE PROCEDURE DELETE_PRODUCT @pProdid INT AS

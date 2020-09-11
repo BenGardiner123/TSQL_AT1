@@ -973,9 +973,9 @@ GO
 EXEC ADD_COMPLEX_SALE @pcustid = 1, @pprodid = 2, @pqty = 5, @pdate = 20200612; 
 EXEC ADD_COMPLEX_SALE @pcustid = 1, @pprodid = 3, @pqty = 5, @pdate = 20200712;
 EXEC ADD_COMPLEX_SALE @pcustid = 1, @pprodid = 2, @pqty = 5, @pdate = 20200812;
-EXEC ADD_COMPLEX_SALE @pcustid = 1, @pprodid = 2, @pqty = 5, @pdate = 20200801; 
-EXEC ADD_COMPLEX_SALE @pcustid = 1, @pprodid = 3, @pqty = 5, @pdate = 20200802;
-EXEC ADD_COMPLEX_SALE @pcustid = 1, @pprodid = 2, @pqty = 5, @pdate = 20200804;
+EXEC ADD_COMPLEX_SALE @pcustid = 1, @pprodid = 2, @pqty = 5, @pdate = 20200908; 
+EXEC ADD_COMPLEX_SALE @pcustid = 1, @pprodid = 3, @pqty = 5, @pdate = 20200909;
+EXEC ADD_COMPLEX_SALE @pcustid = 1, @pprodid = 2, @pqty = 5, @pdate = 20200910;
 GO 
 
 SELECT *
@@ -1083,7 +1083,7 @@ GO
 GO
 
 DECLARE @Count_prod_sales INT
-EXEC @Count_prod_sales = COUNT_PRODUCT_SALES @pdays = -100
+EXEC @Count_prod_sales = COUNT_PRODUCT_SALES @pdays = -10
 PRINT CONCAT('Total sales in your selected range is ', @Count_prod_sales);
 -- NOT SURE IF THIS IS WORKING EXACTLY CORRECT- NEED CHECK WITH TIM ****
 GO
@@ -1131,7 +1131,7 @@ END
 
 -- -------------------- DELETE_ALL_SALES ---- WORKS BELOW --------------------------------------------
 
-/* IF OBJECT_ID('DELETE_ALL_SALES') IS NOT NULL
+IF OBJECT_ID('DELETE_ALL_SALES') IS NOT NULL
 DROP PROCEDURE DELETE_ALL_SALES;
 GO
 
@@ -1161,9 +1161,19 @@ BEGIN
     END CATCH;
 
 
-END */
+END 
 
+Go
 
+SELECT *
+FROM PRODUCT;
+
+GO
+
+SELECT *
+FROM CUSTOMER;
+
+GO
 -- -------------------- DELETE_CUSTOMER ---- WORKS BELOW --------------------------------------------
 
 IF OBJECT_ID('DELETE_CUSTOMER') IS NOT NULL
@@ -1196,5 +1206,3 @@ BEGIN
 
 
 END
-
---   - - - - - 

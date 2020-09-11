@@ -1099,19 +1099,21 @@ CREATE PROCEDURE DELETE_SALE AS
 
 BEGIN
     BEGIN TRY
-        DECLARE @minsale bigint ,@productID INT, @customerID INT
-        SELECT @minsale  = MIN(SALEID), @productID = PRODID FROM SALE
-        IF @@ROWCOUNT = 0
-        THROW 50280, 'No Sale Rows Found', 1
+        DECLARE @minsale bigint ,@productID INT, @customerID INT, @sale_PRICE MONEY
+        SELECT @minsale = MIN(SALEID) FROM SALE;
+        DELETE from SALE
+        WHERE SALEID = @minsale; 
+        IF @minsale = null
+            THROW 50280, 'No Sale Rows Found', 1
         ELSE
-           DELETE from SALE
-           WHERE SALEID = @minsale; 
-
-        -- think need to calulate the amount as equal to qty of the sale * price from sale
-
-      /*   EXEC UPD_CUST_SALESYTD @pcustid = @pcustid, @pamt = @TOTAL;
-        EXEC UPD_PROD_SALESYTD @pprodid = @pprodid, @pamt = @TOTAL;
- */
+        DECLARE @TOTAL MONEY, @sale_qty INT
+        SELECT @sale_PRICE = PRICE, @customerID = CUSTID, @sale_qty = QTY, @productID = PRODID
+        FROM SALE WHERE SALEID = @minsale
+            SET @TOTAL = @sale_qty * @sale_PRICE
+    
+        EXEC UPD_CUST_SALESYTD @pcustid = @customerID, @pamt = @TOTAL;
+        EXEC UPD_PROD_SALESYTD @pprodid = @productID, @pamt = @TOTAL;
+ 
     END TRY
     BEGIN CATCH
        
@@ -1124,10 +1126,27 @@ BEGIN
             END; 
 
     END CATCH;
-
-
+    
 END
 
+EXEC DELETE_SALE
+
+GO
+
+Select *
+FROM SALE;
+
+go
+
+select * 
+from CUSTOMER;
+
+GO
+
+SELECT *
+from product;
+
+GO
 
 -- -------------------- DELETE_ALL_SALES ---- WORKS BELOW --------------------------------------------
 
@@ -1139,12 +1158,13 @@ CREATE PROCEDURE DELETE_ALL_SALES AS
 
 BEGIN
     BEGIN TRY
-
-           DELETE from SALE
-           UPDATE CUSTOMER
-           SET SALES_YTD = 0;
-           UPDATE PRODUCT
-           SET SALES_YTD = 0;
+      
+        DELETE from SALE;
+           
+        UPDATE CUSTOMER
+        SET SALES_YTD = 0;
+        UPDATE PRODUCT
+        SET SALES_YTD = 0;
 
     END TRY
 
@@ -1163,7 +1183,16 @@ BEGIN
 
 END 
 
+GO
+
+EXEC DELETE_ALL_SALES;
+
 Go
+
+SELECT *
+FROM SALE;
+
+go
 
 SELECT *
 FROM PRODUCT;

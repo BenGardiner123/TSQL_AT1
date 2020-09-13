@@ -1274,3 +1274,30 @@ DROP PROCEDURE DELETE_PRODUCT;
 GO
 
 CREATE PROCEDURE DELETE_PRODUCT @pProdid INT AS
+BEGIN
+    BEGIN TRY
+        DELETE from PRODUCT
+        WHERE PRODID = @pProdid
+        IF @@ROWCOUNT = 0
+            THROW 50310, 'Product ID not found', 1
+        
+
+    END TRY
+
+    BEGIN CATCH
+       
+        IF ERROR_NUMBER() IN (50310)
+            THROW
+        IF ERROR_NUMBER() = 547
+            THROW 50320, 'Product cannot be deleted as sales exist', 1
+        ELSE
+            BEGIN
+                DECLARE @ERRORMESSAGE NVARCHAR(MAX) = ERROR_MESSAGE();
+                THROW 
+            END; 
+
+    END CATCH;
+
+
+END
+

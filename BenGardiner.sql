@@ -966,22 +966,21 @@ CREATE PROCEDURE ADD_COMPLEX_SALE  @pcustid INTEGER, @pprodid INTEGER, @pqty INT
 
 BEGIN
     BEGIN TRY
+        IF @pqty < 1 OR @pqty > 999
+            THROW 50230, 'Sale Quantity outside valid range', 1
         DECLARE @TOTAL INT, @status NVARCHAR(100), @pstatus NVARCHAR(100), @pprice money, @userID int, @userProdid INT, @convertedDate DATE;
        
         SELECT  @pstatus = [status], @userID = CUSTID from CUSTOMER where CUSTID = @pcustid; 
+        if @@rowcount = 0
+            THROW 50260, 'Customer ID not found', 1
         SELECT @pprice = SELLING_PRICE, @userProdid = PRODID from PRODUCT where PRODID = @pprodid; 
+        if @@rowcount = 0
+            THROW 50270, 'Product ID not found', 1
         SELECT @convertedDate = CONVERT(nvarchar, @pdate, 112);
 
         IF @pstatus != 'ok'
             THROW 50240, 'Customer Status is not OK', 1
-        IF @pqty < 1 OR @pqty > 999
-            THROW 50230, 'Sale Quantity outside valid range', 1
-        
-        IF (SELECT COUNT(*) FROM CUSTOMER WHERE CUSTID = @pcustid) = 0
-            THROW 50260, 'Customer ID not found', 1
-        IF (SELECT COUNT(*) FROM PRODUCT WHERE PRODID = @pprodid) = 0
-            THROW 50270, 'Product ID not found', 1
-
+       
         DECLARE @seq BIGINT
         set @seq = next VALUE FOR SALE_SEQ
 
@@ -1021,8 +1020,8 @@ END;
 
 -- GO 
 
-/* -- cust id not found
- EXEC ADD_COMPLEX_SALE @pcustid = 6, @pprodid = 2, @pqty = 3, @pdate = 20200612;  */
+-- cust id not found
+ EXEC ADD_COMPLEX_SALE @pcustid = 6, @pprodid = 2, @pqty = 3, @pdate = 20200612;  
 
 --  GO
 /* -- date not valid test - complete

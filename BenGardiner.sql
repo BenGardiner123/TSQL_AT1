@@ -58,7 +58,7 @@ CREATE SEQUENCE SALE_SEQ;
 
 GO
 
--- END PROVIDED DDL ----- BEGIN TSQL WORK ---------------------
+-- END PROVIDED DDL ----- BEGIN ADD_CUSTOMER ---------------------------------------------------------
 
 IF OBJECT_ID('ADD_CUSTOMER') IS NOT NULL
 DROP PROCEDURE ADD_CUSTOMER;
@@ -106,6 +106,8 @@ select * from customer;
 
 GO
 
+-------------------------------- BEGIN DELETE_ALL_CUSTOMERS -------------------------------------------
+
 IF OBJECT_ID('DELETE_ALL_CUSTOMER') IS NOT NULL
 DROP PROCEDURE DELETE_ALL_CUSTOMER;
 
@@ -135,7 +137,7 @@ GO
 EXEC DELETE_ALL_CUSTOMER;
 
 GO
-
+-- PROVES SP WORKS----
 select * from customer;
 
 GO
@@ -145,8 +147,13 @@ EXEC ADD_CUSTOMER @pcustid = 2, @pcustname = 'testdude3';
 EXEC ADD_CUSTOMER @pcustid = 3, @pcustname = 'testdude5';
 
 GO
+----PROVES ADD_CUSTOMER WORKS----
+select * from customer;
 
--- BEGIN "ADD PRODUCT" STORED PROCEDURE
+GO
+
+
+-- BEGIN "ADD PRODUCT" STORED PROCEDURE ----------------------------------------------------------
 
 IF OBJECT_ID('ADD_PRODUCT') IS NOT NULL
 DROP PROCEDURE ADD_PRODUCT;
@@ -160,7 +167,7 @@ BEGIN
         IF @pprodid < 1000 OR @pprodid > 2500
             THROW 50040, 'Product ID out of range', 1
         ELSE if @pprice < 0 OR @pprice > 999.99
-             THROW 50050, 'Product price out of range', 1
+             THROW 50050, 'Price out of range', 1
         INSERT INTO PRODUCT ( PRODID, PRODNAME, SELLING_PRICE, SALES_YTD) 
         VALUES (@pprodid, @pprodname, @pprice, 0);
 
@@ -198,6 +205,8 @@ EXEC ADD_PRODUCT @pprodid = 1074, @pprodname = 'Golf Buggy', @pprice = 890.00;
 GO
 
 select * from customer;
+
+GO
 select * from product;
 
 GO
@@ -245,7 +254,7 @@ GO
 
 
 
--- begin get customer string work here --- - - - - - - -
+-- BEGIN GET_CUSTOMER_STRING ------------------------------------------------------------------------
 
 IF OBJECT_ID('GET_CUSTOMER_STRING') IS NOT NULL
 DROP PROCEDURE GET_CUSTOMER_STRING;
@@ -257,13 +266,21 @@ BEGIN
     BEGIN TRY
         DECLARE @cName NVARCHAR(100), @ytd money, @status NVARCHAR(7);
         SELECT @cName = Custname, @ytd = SALES_YTD , @status  = [status] from CUSTOMER where CUSTID = @pcustid;
-    END TRY
-    BEGIN CATCH
         IF @@ROWCOUNT = 0
         -- custom error below
         THROW 50060, 'CustomerID not found', 1 
+        SET @pReturnString = CONCAT('Custid: ', @pcustid, ' Name: ', @cName, ' Status: ', @status,  ' SalesYTD: ',@ytd)
+       
+    END TRY
+    BEGIN CATCH
+       BEGIN
+            IF ERROR_NUMBER() IN (50060)
+            THROW
+            DECLARE @ERRORMESSAGE NVARCHAR(MAX) = ERROR_MESSAGE();
+            THROW 50000, @ERRORMESSAGE, 1
+        END;
     END CATCH
-    set @pReturnString = CONCAT('Custid: ', @pcustid, 'Name: ', @cName, 'Status: ', @status,  'SalesYTD: ',@ytd)
+    
 END;
 
 GO
@@ -271,18 +288,26 @@ GO
 BEGIN
 
 DECLARE @externalParam NVARCHAR(100)
-
-EXEC GET_CUSTOMER_STRING @pcustid = 3, @pReturnString = @externalParam OUTPUT
-
+-- TESTING THE CUSTOMER NOT FOUND ERROR SHOULD RETURN FROM THIS------------------
+EXEC GET_CUSTOMER_STRING @pcustid = 7, @pReturnString = @externalParam OUTPUT
 
 print @externalParam
 
 END
 
+GO
+BEGIN
 
--- begin UPD_CUST_SALESYTD work here - - -- - - -
--- Update one customer's sales_ytd value in the customer table
+DECLARE @returnCustomerString NVARCHAR(100)
+-- THIS SHOULD RETURN THE CUSTOMER STRING ------------------------
+EXEC GET_CUSTOMER_STRING @pcustid = 3, @pReturnString = @returnCustomerString OUTPUT
 
+print @returnCustomerString
+
+END
+
+GO
+------------------- BEGIN UPD_CUST_SALESYTD work here --------------------------------------------------
 
 IF OBJECT_ID('UPD_CUST_SALESYTD') IS NOT NULL
 DROP PROCEDURE UPD_CUST_SALESYTD;
@@ -329,6 +354,7 @@ EXEC UPD_CUST_SALESYTD @pcustid = 1, @pamt = -344;
 
 END
 
+GO
 -- test with positive num
 BEGIN
 
@@ -336,14 +362,16 @@ EXEC UPD_CUST_SALESYTD @pcustid = 2, @pamt = 344;
 
 END
 
--- test with out of range
+GO
+-- test with out of range this should error out w/50080
 BEGIN
 
 EXEC UPD_CUST_SALESYTD @pcustid = 2, @pamt = 9000;
 
 END
 
--- test with custID not found
+GO
+-- test with custID not found -- this should error out w/50070
 BEGIN
 
 EXEC UPD_CUST_SALESYTD @pcustid = 5, @pamt = 344;
@@ -374,13 +402,11 @@ BEGIN
         SELECT @pprodname = PRODNAME, @ytd = SALES_YTD, @sellprice = SELLING_PRICE 
         from PRODUCT 
         where PRODID = @pprodid;
-
         IF @@ROWCOUNT = 0
-       
         THROW 50090, 'Product ID not found', 1 
-
         set @pReturnString = CONCAT('Prodid: ', @pprodid, ' ','Name: ', @pprodname, ' ',  'Price: ' , @sellprice ,' ','SalesYTD: ',@ytd);
 
+        
     END TRY
 
     BEGIN CATCH
@@ -388,20 +414,32 @@ BEGIN
     IF ERROR_NUMBER() IN (50090)
         THROW
     ELSE
-    
         BEGIN
-                DECLARE @ERRORMESSAGE NVARCHAR(MAX) = ERROR_MESSAGE();
-                THROW 50000, @ERRORMESSAGE, 1
+            DECLARE @ERRORMESSAGE NVARCHAR(MAX) = ERROR_MESSAGE();
+            THROW 50000, @ERRORMESSAGE, 1
         END;
-        
     END CATCH
     
 END
 GO
 
 DELETE FROM PRODUCT;
+
+GO
+
+SELECT *
+FROM PRODUCT;
+
+GO
+
 INSERT INTO PRODUCT(PRODID, PRODNAME, SELLING_PRICE, sales_ytd)
 VALUES(1,'Hammer', 500, 1000);
+
+GO
+
+SELECT *
+FROM PRODUCT;
+
 
 GO
 BEGIN
@@ -410,6 +448,7 @@ BEGIN
     print @externalParam
 END 
 GO
+-- THIS SHOULD ERROR OUT W/ 50090
 BEGIN
     DECLARE @externalParam NVARCHAR(100)
     EXEC GET_PROD_STRING @pprodid = 2, @pReturnString = @externalParam OUTPUT
@@ -419,10 +458,9 @@ GO
 
 -- https://www.techonthenet.com/sql_server/procedures.php --- this website is good
 
--- 
 
--- begin UPD_PROD_SALESYTD work here - - -- - - -
--- Update one customer's sales_ytd value in the customer table
+
+---------------------- BEGIN UPD_PROD_SALESYTD work here -------------------------------------------------------------------------------------------
 
 
 IF OBJECT_ID('UPD_PROD_SALESYTD ') IS NOT NULL
@@ -545,7 +583,11 @@ BEGIN
 END;
 
 GO
+
 DELETE FROM CUSTOMER;
+
+GO
+
 INSERT INTO customer(custid, Custname, sales_ytd, [status])
 VALUES 
 (1, 'BallyWho', 500, 'ok'),
@@ -560,26 +602,31 @@ from Customer
 GO
 -- test suspend
 BEGIN
-
 EXEC UPD_CUSTOMER_STATUS  @pcustid = 1, @pstatus = 'suspend';
-
 END
-GO
 
+GO
+SELECT *
+from Customer
+
+GO
 -- test ok
 BEGIN
-
 EXEC UPD_CUSTOMER_STATUS  @pcustid = 3, @pstatus = 'ok';
-
 END
-GO
 
+GO
+SELECT *
+from Customer
+
+GO
 -- test custid does not exist
 BEGIN
 
 EXEC UPD_CUSTOMER_STATUS  @pcustid = 5, @pstatus = 'ok';
 
 END
+
 GO
 
 -- test incorrect data entry
@@ -588,13 +635,12 @@ BEGIN
 EXEC UPD_CUSTOMER_STATUS  @pcustid = 1, @pstatus = 'big trouble';
 
 END
+
 GO
 
 -- check that the values in status have been reversed
 SELECT *
-
 from Customer
-
 GO
 
 --  ADD SIMPLE SALE follows here - - - - - - - - - - - -
@@ -660,26 +706,47 @@ VALUES
 GO
 
 DELETE FROM PRODUCT;
+
+GO
+
 INSERT INTO PRODUCT(PRODID, PRODNAME, SELLING_PRICE, sales_ytd)
 VALUES (2, 'Hammer', 50, 0),
 (3, 'Shovel', 20, 0)
 
 GO
--- TEST 1
+-- TEST 1 -- THIS IS CORRECT AND SHOULD INSERT
 BEGIN
 EXEC ADD_SIMPLE_SALE  @pcustid = 1 , @pprodid = 2, @pqty = 3  
 END
 
 GO
--- TEST 2 
+-- TEST 2 -- SUSPEND WILL CAUSE THIS TO FAIL
 BEGIN
 EXEC ADD_SIMPLE_SALE  @pcustid = 3, @pprodid = 3, @pqty = 3;
 END
 
--- TEST 2 - id will fail
+
+GO
+-- TEST 3 --PRODUCT ID NOT FOUND TEST
 BEGIN
-EXEC ADD_SIMPLE_SALE  @pcustid = 3, @pprodid = 7, @pqty = 3;
+EXEC ADD_SIMPLE_SALE  @pcustid = 1, @pprodid = 12, @pqty = 3;
 END
+
+GO
+
+-- TEST 4 - Sale Quantity outside valid range
+BEGIN
+EXEC ADD_SIMPLE_SALE  @pcustid = 1, @pprodid = 2, @pqty = 1000;
+END
+
+GO
+
+-- TEST 5 - Customer ID not found
+BEGIN
+EXEC ADD_SIMPLE_SALE  @pcustid = 12, @pprodid = 2, @pqty = 3;
+END
+
+GO
 
 GO
 SELECT *
@@ -715,7 +782,7 @@ END;
 GO
 DECLARE @CustSalesSum INT
 EXEC @CustSalesSum = SUM_CUSTOMER_SALESYTD;
-PRINT @CustSalesSum
+PRINT CONCAT('CUSTOMER SALES_YTD TOTAL: ', @CustSalesSum)
 GO
 
 -- SUM_PRODUCT_SALESYTD work to begin below here .-.-.-.-.-.-.-.-.-.
@@ -745,7 +812,7 @@ END;
 GO
 DECLARE @ProdSalesSum INT
 EXEC @ProdSalesSum = SUM_PRODUCT_SALESYTD;
-PRINT @ProdSalesSum
+PRINT CONCAT('PRODUCT SALES_YTD TOTAL: ', @ProdSalesSum)
 GO
 
 --.-.-.-.-.-. GET_ALL_CUSTOMERS WORK TO FOLLOW HERE .-.-.-.-.-.-.-.-.-.-.-.-.
@@ -777,7 +844,7 @@ FETCH NEXT FROM @outCust INTO @ID, @Name, @ytd, @status;
 -- this 
 WHILE @@FETCH_status = 0
 BEGIN
-    PRINT CONCAT(@ID, @Name, @ytd, @status)
+    PRINT CONCAT('CustomerID', @ID, 'Customer Name: ', @Name,'Sales YTD: ', @ytd, 'Customer Status: ', @status)
     FETCH NEXT FROM @outCust INTO @ID, @Name, @ytd, @status;
 END
 
@@ -785,6 +852,7 @@ CLOSE @outCust;
 DEALLOCATE @outCust;
 END
 
+GO
 
 
 --.-.-.-.-.-. GET_ALL_PRODUCTS WORK TO FOLLOW HERE .-.-.-.-.-.-.-.-.-.-.-.-.
@@ -814,7 +882,7 @@ FETCH NEXT FROM @outPROD INTO @PRODID, @PRODNAME, @SELLING_PRICE, @SALES_YTD;
 
 WHILE @@FETCH_status = 0
 BEGIN
-    PRINT CONCAT(@PRODID, @PRODNAME, @SELLING_PRICE, @SALES_YTD)
+    PRINT CONCAT('ProductID: ', @PRODID,' Product Name: ' , @PRODNAME,' Selling Price: ', @SELLING_PRICE,' Sales YTD: ', @SALES_YTD)
     FETCH NEXT FROM @outPROD INTO @PRODID, @PRODNAME, @SELLING_PRICE, @SALES_YTD;
 END
 
@@ -1100,19 +1168,27 @@ CREATE PROCEDURE DELETE_SALE AS
 BEGIN
     BEGIN TRY
         DECLARE @minsale bigint ,@productID INT, @customerID INT, @sale_PRICE MONEY
+        
         SELECT @minsale = MIN(SALEID) FROM SALE;
-        DELETE from SALE
-        WHERE SALEID = @minsale; 
-        IF @minsale = null
+         if @minsale is NULL
             THROW 50280, 'No Sale Rows Found', 1
-        ELSE
+        
         DECLARE @TOTAL MONEY, @sale_qty INT
         SELECT @sale_PRICE = PRICE, @customerID = CUSTID, @sale_qty = QTY, @productID = PRODID
-        FROM SALE WHERE SALEID = @minsale
-            SET @TOTAL = @sale_qty * @sale_PRICE
+        FROM SALE WHERE SALEID = @minsale;
+        
+        SET @TOTAL = @sale_qty * @sale_PRICE
+        
     
         EXEC UPD_CUST_SALESYTD @pcustid = @customerID, @pamt = @TOTAL;
+         
         EXEC UPD_PROD_SALESYTD @pprodid = @productID, @pamt = @TOTAL;
+
+        DELETE from SALE
+        WHERE SALEID = @minsale; 
+
+        
+       
  
     END TRY
     BEGIN CATCH
@@ -1122,17 +1198,35 @@ BEGIN
         ELSE
             BEGIN
                 DECLARE @ERRORMESSAGE NVARCHAR(MAX) = ERROR_MESSAGE();
-                THROW 50000, @ERRORMESSAGE, 1
+                THROW 
             END; 
 
     END CATCH;
     
 END
 
+GO
+
+DELETE FROM SALE
+
+GO
+-- THIS SHOULD ERROR OUT
 EXEC DELETE_SALE
 
 GO
+EXEC ADD_COMPLEX_SALE @pcustid = 1, @pprodid = 2, @pqty = 5, @pdate = 20200612; 
+EXEC ADD_COMPLEX_SALE @pcustid = 1, @pprodid = 3, @pqty = 5, @pdate = 20200712;
+EXEC ADD_COMPLEX_SALE @pcustid = 1, @pprodid = 2, @pqty = 5, @pdate = 20200812;
+EXEC ADD_COMPLEX_SALE @pcustid = 1, @pprodid = 2, @pqty = 5, @pdate = 20200908; 
+EXEC ADD_COMPLEX_SALE @pcustid = 1, @pprodid = 3, @pqty = 5, @pdate = 20200909;
+EXEC ADD_COMPLEX_SALE @pcustid = 1, @pprodid = 2, @pqty = 5, @pdate = 20200910;
 
+GO
+
+EXEC DELETE_SALE
+
+GO
+-- results table shows 5 rows - procedure works.
 Select *
 FROM SALE;
 
@@ -1189,7 +1283,7 @@ EXEC DELETE_ALL_SALES;
 
 Go
 
-SELECT *
+SELECT 'Check Sales' as 'Check sales are del', *
 FROM SALE;
 
 go
@@ -1248,6 +1342,10 @@ GO
 EXEC ADD_CUSTOMER @pcustid = 10, @pcustname = 'Augusto C. Sandino';
 
 GO
+SELECT 'Check customer b4' as 'Check cust b4', *
+from Customer
+
+GO
 
 EXEC ADD_COMPLEX_SALE @pcustid = 1, @pprodid = 2, @pqty = 5, @pdate = 20200612; 
 EXEC ADD_COMPLEX_SALE @pcustid = 1, @pprodid = 3, @pqty = 5, @pdate = 20200712;
@@ -1257,17 +1355,20 @@ EXEC ADD_COMPLEX_SALE @pcustid = 1, @pprodid = 3, @pqty = 5, @pdate = 20200909;
 EXEC ADD_COMPLEX_SALE @pcustid = 3, @pprodid = 2, @pqty = 5, @pdate = 20200910;
 
 GO 
--- THIS TESTS THE ERROR
-/* EXEC DELETE_CUSTOMER @pcustid = 3; */
+/* -- this tests the error
+ EXEC DELETE_CUSTOMER @pcustid = 2;  */
 
 GO
-
+-- THIS TESTS THE ERROR
 EXEC DELETE_CUSTOMER @pcustid = 10;
 
 GO
--- need to visually check this with a select *
 
---------------------------DELETE_PRODUCT works to follow here ---------------------------------------------------------
+SELECT 'Check customer' as 'Check cust delete', *
+from Customer
+
+GO
+---------------------DELETE_PRODUCT works to follow here --------------------------------------------------------
 
 IF OBJECT_ID('DELETE_PRODUCT') IS NOT NULL
 DROP PROCEDURE DELETE_PRODUCT;
@@ -1301,3 +1402,18 @@ BEGIN
 
 END
 
+
+GO 
+-- this tests the product id error
+ EXEC DELETE_PRODUCT @pProdid = 212;  
+
+GO
+-- this test the sales exist error
+EXEC DELETE_PRODUCT @pProdid = 3;
+
+GO
+
+SELECT 'Check prod' as 'Check prod delete', *
+from Product
+
+GO
